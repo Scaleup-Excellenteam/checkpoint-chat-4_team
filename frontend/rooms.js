@@ -3,7 +3,7 @@ const BASE_URL = 'http://localhost:3000';
 
 // ====== Fetch helpers (JWT via Auth.fetchAuthed) ======
 async function getRooms()     { return Auth.fetchAuthed('/rooms',        { method: 'GET'  }, { baseUrl: BASE_URL }); }
-async function addRoom(name)  { return Auth.fetchAuthed('/rooms/add',    { method: 'POST', body: JSON.stringify({ name }) }, { baseUrl: BASE_URL }); }
+async function addRoom(name)  { return Auth.fetchAuthed('/rooms/add',    { method: 'POST', body: JSON.stringify({ newRoomName: name }) }, { baseUrl: BASE_URL }); }
 async function deleteRoom(id) {
     return Auth.fetchAuthed(`/rooms/${encodeURIComponent(id)}`, { method: 'DELETE' }, { baseUrl: BASE_URL });
   }
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function populateRooms(rooms) {
     roomsSelect.innerHTML = '';
     if (!rooms || !rooms.length) {
+      console.log('No rooms');
       roomsSelect.innerHTML = '<option value="" disabled selected>No rooms found</option>';
       joinBtn.disabled = true;
       if (role === 'admin') deleteBtn.disabled = true;
@@ -63,8 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
   async function refreshRooms() {
     setBusy(true);
     try {
-      const rooms = await getRooms();
-      populateRooms(rooms);
+      const roomsObj = await getRooms();
+      populateRooms(roomsObj.rooms || []);
       setStatus('Rooms loaded.');
     } catch (e) {
       populateRooms([]);

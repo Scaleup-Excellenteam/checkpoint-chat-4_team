@@ -10,10 +10,8 @@ function opts(body) {
 
 async function postJson(path, payload) {
   const res = await fetch(`${BASE_URL}${path}`, opts(payload));
-  const text = await res.text();
-  let data;
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
-  if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
   return data;
 }
 
@@ -39,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (result?.id) {
         localStorage.setItem('user_id', result.id); // Save the id in local storage
+      }
+      if (result?.role) {
+        Auth.setUser({ role: result.role });
       }
     
       alert('Login successful! Redirecting to the rooms...');

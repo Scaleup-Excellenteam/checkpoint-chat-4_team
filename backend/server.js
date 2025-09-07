@@ -5,9 +5,13 @@ const PORT = 3000;
 const authRoutes = require("./routes/authRoutes");
 const roomsRouter = require("./routes/roomsRouter");
 const connectDB = require("./db");
+const cors = require("cors");
 
 // Middleware
 app.use(express.json());
+
+// CORS configuration
+app.use(cors());
 
 // Routes
 app.use("/auth", authRoutes);
