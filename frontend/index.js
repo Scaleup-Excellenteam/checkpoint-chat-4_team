@@ -43,8 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       localStorage.setItem("token", result.token);
-    
-      alert('Login successful! Redirecting to the rooms...');
       window.location.href = 'rooms.html';
     } catch (err) {
       alert(`Login failed: ${err.message}`);
