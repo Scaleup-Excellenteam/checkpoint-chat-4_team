@@ -4,7 +4,9 @@ const BASE_URL = 'http://localhost:3000';
 // ====== Fetch helpers (JWT via Auth.fetchAuthed) ======
 async function getRooms()     { return Auth.fetchAuthed('/rooms',        { method: 'GET'  }, { baseUrl: BASE_URL }); }
 async function addRoom(name)  { return Auth.fetchAuthed('/rooms/add',    { method: 'POST', body: JSON.stringify({ name }) }, { baseUrl: BASE_URL }); }
-async function deleteRoom(id) { return Auth.fetchAuthed('/rooms/delete', { method: 'POST', body: JSON.stringify({ id })   }, { baseUrl: BASE_URL }); }
+async function deleteRoom(id) {
+    return Auth.fetchAuthed(`/rooms/${encodeURIComponent(id)}`, { method: 'DELETE' }, { baseUrl: BASE_URL });
+  }
 
 document.addEventListener('DOMContentLoaded', () => {
   // Require a valid, non-expired token
@@ -108,21 +110,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (role === 'admin') {
     deleteBtn.addEventListener('click', async () => {
-      const id = roomsSelect.value;
-      const name = roomsSelect.options[roomsSelect.selectedIndex]?.textContent || '';
-      if (!id) { setStatus('Please select a room.'); return; }
-      if (!confirm(`Delete room "${name}"?`)) return;
-      setBusy(true);
-      try {
-        await deleteRoom(id);
-        await refreshRooms();
-        setStatus('Room deleted.');
-      } catch (e) {
-        setStatus(`Delete failed: ${e.message}`);
-      } finally {
-        setBusy(false);
-      }
-    });
+        const id = roomsSelect.value;
+        const name = roomsSelect.options[roomsSelect.selectedIndex]?.textContent || '';
+        if (!id) { setStatus('Please select a room.'); return; }
+        if (!confirm(`Delete room "${name}"?`)) return;
+        setBusy(true);
+        try {
+          await deleteRoom(id);
+          await refreshRooms();
+          setStatus('Room deleted.');
+        } catch (e) {
+          setStatus(`Delete failed: ${e.message}`);
+        } finally {
+          setBusy(false);
+        }
+      });
   }
 
   // Initial load
