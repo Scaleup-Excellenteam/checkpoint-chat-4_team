@@ -27,13 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = idEl.value.trim();
+    const name = idEl.value.trim();
     const password = pwEl.value.trim();
-    if (!id || !password) { alert('Please enter both ID and Password.'); return; }
+    if (!name || !password) { alert('Please enter both ID and Password.'); return; }
 
     btn.disabled = true;
     try {
-      await postJson('/auth/register', { id, password });
+      await postJson('/auth/register', { name, password });
       alert('Registration successful! Redirecting to login page...');
       window.location.href = 'index.html';
     } catch (err) {
