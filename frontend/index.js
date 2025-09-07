@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result?.role) {
         Auth.setUser({ role: result.role });
       }
+
+      localStorage.setItem("token", result.token);
     
       alert('Login successful! Redirecting to the rooms...');
       window.location.href = 'rooms.html';

@@ -47,7 +47,7 @@ io.use((socket, next) => {
 
 // --- Handle socket connections ---
 io.on("connection", (socket) => {
-  console.log(`✅ ${socket.user.username} connected (id: ${socket.id})`);
+  console.log(`✅ ${socket.user.name} connected (id: ${socket.id})`);
 
   // Join room
   socket.on("joinRoom", async (roomId) => {
@@ -58,30 +58,29 @@ io.on("connection", (socket) => {
     }
 
     // Add user to room in DB if not already in it
-    const userId = mongoose.Types.ObjectId(socket.user.id);
-    if (!room.users.includes(userId)) {
-      room.users.push(userId);
+    if (!room.users.map(u => u.toString()).includes(socket.user.id)) {
+      room.users.push(socket.user.id);
       await room.save();
     }
 
     // Add socket to Socket.IO room
     socket.join(roomId);
-    console.log(`${socket.user.username} joined room ${room.name}`);
+    console.log(`${socket.user.name} joined room ${room.name}`);
 
-    io.to(roomId).emit("systemMessage", `${socket.user.username} joined the room`);
+    io.to(roomId).emit("systemMessage", `${socket.user.name} joined the room`);
   });
 
   // Send message
   socket.on("chatMessage", ({ roomId, message }) => {
-    console.log(`[${roomId}] ${socket.user.username}: ${message}`);
+    console.log(`[${roomId}] ${socket.user.name}: ${message}`);
     io.to(roomId).emit("chatMessage", {
-      sender: socket.user.username,
+      sender: socket.user.name,
       text: message,
     });
   });
 
   socket.on("disconnect", () => {
-    console.log(`❌ ${socket.user.username} disconnected`);
+    console.log(`❌ ${socket.user.name} disconnected`);
   });
 });
 

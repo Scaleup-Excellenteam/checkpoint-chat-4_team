@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Navigate Rooms → Chat
   joinBtn.addEventListener('click', () => {
-    const id   = roomsSelect.value;
+    const id = roomsSelect.value;
     if (!id) { setStatus('Please select a room.'); return; }
     const name = roomsSelect.options[roomsSelect.selectedIndex]?.textContent || 'Room';
     window.location.href = `chat.html?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`;
