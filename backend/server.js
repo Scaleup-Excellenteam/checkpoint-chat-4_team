@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const authRoutes = require("./routes/authRoutes");
 const roomsRouter = require("./routes/roomsRouter");
+const chatSocket = require("./sockets/chatSocket");
 const connectDB = require("./db");
 const cors = require("cors");
 const Room = require("./models/Room");
