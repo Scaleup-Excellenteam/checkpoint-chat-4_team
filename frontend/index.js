@@ -1,12 +1,10 @@
 const BASE_URL = 'http://localhost:3000';
-const USE_COOKIES = false; // set to true if your server uses cookie-based sessions
 
 function opts(body) {
   return {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    ...(USE_COOKIES ? { credentials: 'include' } : {}),
   };
 }
 
@@ -21,7 +19,7 @@ async function postJson(path, payload) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
-  const btn = document.getElementById('login-button');
+  const btn  = document.getElementById('login-button');
   const idEl = document.getElementById('login-id');
   const pwEl = document.getElementById('login-password');
 
@@ -33,24 +31,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btn.disabled = true;
     try {
-        const result = await postJson('/auth/login', { id, password });
-      
-        // Store JWT if returned
-        if (result?.token && !USE_COOKIES) {
-          localStorage.setItem('auth_token', result.token);
-        }
-      
-        // Store role if returned
-        if (result?.role) {
-          localStorage.setItem('user_role', result.role);
-        }
-      
-        alert('Login successful! Redirecting to the rooms...');
-        window.location.href = 'rooms.html';
-      } catch (err) {
-        alert(`Login failed: ${err.message}`);
-      } finally {
-        btn.disabled = false;
-      }
+      // Expecting server to return: { token, user }
+      const result = await postJson('/auth/login', { id, password });
+
+      if (result?.token)  Auth.setToken(result.token);
+      if (result?.user)   Auth.setUser(result.user);   // <-- saved for all pages
+
+      alert('Login successful! Redirecting to the rooms...');
+      window.location.href = 'rooms.html';
+    } catch (err) {
+      alert(`Login failed: ${err.message}`);
+    } finally {
+      btn.disabled = false;
+    }
   });
 });

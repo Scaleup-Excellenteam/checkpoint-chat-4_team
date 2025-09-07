@@ -1,20 +1,11 @@
-// ====== Config ======
-const BASE_URL    = 'http://localhost:3000';
-const USE_COOKIES = false;
-const TOKEN_KEY   = 'auth_token';
-const NAME_KEY    = 'user_name';
-const POLL_MS     = 3000;
+const BASE_URL = 'http://localhost:3000';
+const POLL_MS  = 3000;
 
-// ====== Helpers ======
-function authHeaders() {
-  if (USE_COOKIES) return {};
-  const t = localStorage.getItem(TOKEN_KEY);
-  return t ? { Authorization: `Bearer ${t}` } : {};
-}
 function qs(name, def = '') {
   const url = new URL(window.location.href);
   return url.searchParams.get(name) ?? def;
 }
+
 function escapeHTML(s = '') {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#039;'}[c]));
 }
@@ -22,46 +13,46 @@ function fmtTime(iso) {
   try { const d = new Date(iso); return Number.isNaN(+d) ? '' : d.toLocaleString(); }
   catch { return ''; }
 }
-async function req(method, path, bodyObj) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    ...(USE_COOKIES ? { credentials:'include' } : {}),
-    body: bodyObj ? JSON.stringify(bodyObj) : undefined,
-  });
-  const text = await res.text();
-  let data; try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
-  if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
-  return data;
+
+// Server calls with JWT via Auth.fetchAuthed
+async function fetchMessages(roomId) {
+  return Auth.fetchAuthed(`/rooms/${encodeURIComponent(roomId)}/messages`, { method:'GET' }, { baseUrl: BASE_URL });
+}
+async function sendMessage(roomId, text) {
+  return Auth.fetchAuthed(`/rooms/${encodeURIComponent(roomId)}/messages`, { method:'POST', body: JSON.stringify({ text }) }, { baseUrl: BASE_URL });
+}
+async function fetchMembers(roomId) {
+  return Auth.fetchAuthed(`/rooms/${encodeURIComponent(roomId)}/members`, { method:'GET' }, { baseUrl: BASE_URL });
 }
 
-// ====== API stubs ======
-async function fetchMessages(roomId) { return req('GET',  `/rooms/${encodeURIComponent(roomId)}/messages`); }
-async function sendMessage(roomId, text){ return req('POST', `/rooms/${encodeURIComponent(roomId)}/messages`, { text }); }
-async function fetchMembers(roomId)  { return req('GET',  `/rooms/${encodeURIComponent(roomId)}/members`); }
-
-// ====== UI wiring ======
 document.addEventListener('DOMContentLoaded', () => {
-  const historyEl = document.getElementById('history');
-  const membersEl = document.getElementById('members');
-  const statusEl  = document.getElementById('status');
-  const sendBtn   = document.getElementById('send-btn');
-  const inputEl   = document.getElementById('msg-input');
-  const titleEl   = document.getElementById('room-title');
-  const roomIdLine= document.getElementById('room-id-line');
-  const backBtn   = document.getElementById('back-btn');
+  // Require token
+  if (!Auth.requireAuthOrRedirect('index.html')) return;
 
-  const roomId = qs('id');
+  const historyEl  = document.getElementById('history');
+  const membersEl  = document.getElementById('members');
+  const statusEl   = document.getElementById('status');
+  const sendBtn    = document.getElementById('send-btn');
+  const inputEl    = document.getElementById('msg-input');
+  const titleEl    = document.getElementById('room-title');
+  const roomIdLine = document.getElementById('room-id-line');
+  const backBtn    = document.getElementById('back-btn');
+
+  const roomId   = qs('id');
   const roomName = qs('name') || 'Room';
   if (!roomId) {
     alert('Missing room id');
     window.location.href = 'rooms.html';
     return;
   }
+
+  // Read current user from storage (set at login)
+  const user = Auth.getUser() || {};
+  const displayName = user.name || user.username || user.id || 'You';
+
   titleEl.textContent = roomName;
   roomIdLine.textContent = `ID: ${roomId}`;
 
-  // <<< NAVIGATE: Chat → Rooms >>>
   backBtn.addEventListener('click', () => {
     window.location.href = 'rooms.html';
   });
@@ -72,12 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!Array.isArray(list)) list = [];
     historyEl.innerHTML = '';
     for (const m of list) {
-      const user = escapeHTML(m.user ?? 'Unknown');
-      const text = escapeHTML(m.text ?? '');
+      // Expecting server fields: user, text, createdAt
+      const u = escapeHTML(m.user ?? 'Unknown');
+      const t = escapeHTML(m.text ?? '');
       const time = escapeHTML(fmtTime(m.createdAt) || '');
       const div = document.createElement('div');
       div.className = 'msg';
-      div.innerHTML = `<span class="user">${user}:</span> <span class="text">${text}</span>${time ? ` <span class="time">${time}</span>` : ''}`;
+      div.innerHTML = `<span class="user">${u}:</span> <span class="text">${t}</span>${time ? ` <span class="time">${time}</span>` : ''}`;
       historyEl.appendChild(div);
     }
     historyEl.scrollTop = historyEl.scrollHeight;
@@ -96,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     for (const u of list) {
       const div = document.createElement('div');
       div.className = 'member';
+      // Expecting fields: name or id
       div.textContent = u.name || u.id || 'Unknown';
       membersEl.appendChild(div);
     }
@@ -103,7 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function refreshAll() {
     try {
-      const [msgs, members] = await Promise.all([fetchMessages(roomId), fetchMembers(roomId)]);
+      const [msgs, members] = await Promise.all([
+        fetchMessages(roomId),
+        fetchMembers(roomId),
+      ]);
       renderMessages(msgs);
       renderMembers(members);
       setStatus('Updated.');
@@ -121,7 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = inputEl.value.trim();
     if (!text) return;
     sendBtn.disabled = true;
+
     try {
+      // Send to server (server will attach the real user based on JWT)
       await sendMessage(roomId, text);
       inputEl.value = '';
       await refreshAll();

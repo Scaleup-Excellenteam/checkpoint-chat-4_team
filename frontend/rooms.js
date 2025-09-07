@@ -1,41 +1,19 @@
 // ====== Config ======
 const BASE_URL = 'http://localhost:3000';
-const USE_COOKIES = false; // true if you use cookie-based sessions
-const TOKEN_KEY = 'auth_token';
-const ROLE_KEY  = 'user_role';  // 'admin' | 'user'
 
-// ====== Auth / Role helpers ======
-function getAuthHeaders() {
-  if (USE_COOKIES) return {};
-  const token = localStorage.getItem(TOKEN_KEY);
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-function getUserRole() {
-  return localStorage.getItem(ROLE_KEY) || 'user';
-}
+// ====== Fetch helpers (JWT via Auth.fetchAuthed) ======
+async function getRooms()     { return Auth.fetchAuthed('/rooms',        { method: 'GET'  }, { baseUrl: BASE_URL }); }
+async function addRoom(name)  { return Auth.fetchAuthed('/rooms/add',    { method: 'POST', body: JSON.stringify({ name }) }, { baseUrl: BASE_URL }); }
+async function deleteRoom(id) { return Auth.fetchAuthed('/rooms/delete', { method: 'POST', body: JSON.stringify({ id })   }, { baseUrl: BASE_URL }); }
 
-// ====== Fetch helpers ======
-async function req(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, options);
-  const text = await res.text();
-  let data; try { data = text ? JSON.parse(text) : {}; } catch { data = { message: text }; }
-  if (!res.ok) throw new Error(data?.message || `HTTP ${res.status}`);
-  return data;
-}
-function makeOpts(method, bodyObj) {
-  const base = {
-    method,
-    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-    ...(USE_COOKIES ? { credentials: 'include' } : {}),
-  };
-  return bodyObj ? { ...base, body: JSON.stringify(bodyObj) } : base;
-}
-async function getRooms()     { return req('/rooms',      makeOpts('GET')); }
-async function addRoom(name)  { return req('/rooms/add',  makeOpts('POST', { name })); }
-async function deleteRoom(id) { return req('/rooms/delete', makeOpts('POST', { id })); }
-
-// ====== UI wiring ======
 document.addEventListener('DOMContentLoaded', () => {
+  // Require a valid, non-expired token
+  if (!Auth.requireAuthOrRedirect('index.html')) return;
+
+  // Get user & role from stored user (fallback to 'user')
+  const user = Auth.getUser() || {};
+  const role = user.role || 'user';
+
   const roleText    = document.getElementById('role-text');
   const createSect  = document.getElementById('create-room-section');
   const newRoomName = document.getElementById('new-room-name');
@@ -47,23 +25,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteBtn   = document.getElementById('delete-room-btn');
   const statusEl    = document.getElementById('status');
 
-  // Role-gated UI
-  const role = getUserRole();
   roleText.textContent = role;
   if (role === 'admin') {
     createSect.style.display = '';
   } else {
     createSect.style.display = 'none';
-    deleteBtn.style.display = 'none';
+    deleteBtn.style.display  = 'none';
   }
 
-  // Helpers
   function setStatus(msg) { statusEl.textContent = msg || ''; }
   function setBusy(b) {
     [createBtn, refreshBtn, joinBtn, deleteBtn].forEach(btn => { if (btn) btn.disabled = !!b; });
     roomsSelect.disabled = !!b;
     if (b) setStatus('Working…');
   }
+
   function populateRooms(rooms) {
     roomsSelect.innerHTML = '';
     if (!rooms || !rooms.length) {
@@ -74,8 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     for (const r of rooms) {
       const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.textContent = r.name;
+      opt.value = r.id;          // adjust if server field differs
+      opt.textContent = r.name;  // adjust if server field differs
       roomsSelect.appendChild(opt);
     }
     joinBtn.disabled = false;
@@ -96,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Events
   refreshBtn.addEventListener('click', refreshRooms);
+
   roomsSelect.addEventListener('change', () => {
     const selected = roomsSelect.value;
     joinBtn.disabled = !selected;
@@ -122,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // >>> NAVIGATE: Rooms → Chat <<<
+  // Navigate Rooms → Chat
   joinBtn.addEventListener('click', () => {
     const id   = roomsSelect.value;
     if (!id) { setStatus('Please select a room.'); return; }
