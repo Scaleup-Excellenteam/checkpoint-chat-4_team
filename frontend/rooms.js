@@ -127,7 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
   }
-
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      Auth.clearAuth();               // clears token + user:contentReference[oaicite:2]{index=2}
+      window.location.href = 'index.html';  // go back to login page
+    });
+  }
   // Initial load
   refreshRooms();
 });
