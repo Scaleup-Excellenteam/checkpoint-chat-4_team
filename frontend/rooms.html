@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rooms</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; }
+    .wrap { max-width: 720px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.06); }
+    h1 { margin: 0 0 16px; font-size: 24px; }
+    p.hint { color: #666; margin-top: 4px; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-top: 16px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    select, input[type="text"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; background: #fff;
+    }
+    button {
+      padding: 10px 14px; border: 0; border-radius: 10px; font-size: 14px; cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0,0,0,.06);
+    }
+    button.primary { background: #2563eb; color: #fff; }
+    button.secondary { background: #eef2ff; color: #3730a3; }
+    button.danger { background: #fee2e2; color: #991b1b; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .divider { height: 1px; background: #eee; margin: 20px 0; }
+    .status { margin-top: 10px; color: #555; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Rooms</h1>
+    <div id="role-line" class="p hint">Role: <span id="role-text">…</span></div>
+
+    <div class="divider"></div>
+
+    <!-- Create Room (admins only) -->
+    <div id="create-room-section" style="display:none;">
+      <h2 style="font-size:18px; margin:0 0 8px;">Create a new room</h2>
+      <div class="row">
+        <input id="new-room-name" type="text" placeholder="Room name" />
+        <button class="primary" id="create-room-btn">Create Room</button>
+      </div>
+      <p class="hint">Only admins can create rooms.</p>
+      <div class="divider"></div>
+    </div>
+
+    <!-- Select & Join/Delete -->
+    <h2 style="font-size:18px; margin:0 0 8px;">Available rooms</h2>
+    <div class="row">
+      <select id="rooms-select" aria-label="Available rooms">
+        <option value="" disabled selected>Loading…</option>
+      </select>
+      <div class="controls">
+        <button class="secondary" id="refresh-btn" title="Refresh list">Refresh</button>
+      </div>
+    </div>
+
+    <div class="controls" style="margin-top:12px;">
+      <button class="primary" id="join-room-btn" disabled>Join room</button>
+      <button class="danger" id="delete-room-btn" disabled>Delete room</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script src="rooms.js"></script>
+</body>
+</html>
