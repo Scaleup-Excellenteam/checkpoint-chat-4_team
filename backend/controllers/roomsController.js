@@ -70,3 +70,22 @@ exports.deleteRoom = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 }
+
+exports.getRoomMembers = async (req, res) => {
+    try {
+    const roomId = req.params.id;
+    const room = await Room.findById(roomId).populate("users", "name"); 
+
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+
+    // Extract the user names
+    const userNames = room.users.map(user => user.name);
+
+    return res.status(200).json({ members: userNames });
+  } catch (err) {
+    console.error("Error fetching user names:", err);
+    throw err;
+  }
+}
