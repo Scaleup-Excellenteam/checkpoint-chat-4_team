@@ -13,7 +13,7 @@ function fmtTime() {
   return new Date().toLocaleTimeString();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (!Auth.requireAuthOrRedirect('index.html')) return;
 
   const roomId = qs('id');
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     list.forEach(u => {
       const div = document.createElement("div");
       div.className = "member";
-      div.textContent = u.name || u.username || u.id || "Unknown";
+      div.textContent = u || u.username || u.id || "Unknown";
       membersEl.appendChild(div);
     });
   }
@@ -97,4 +97,24 @@ document.addEventListener('DOMContentLoaded', () => {
       sendBtn.click();
     }
   });
+
+  // Fetch and render members from the server
+  try {
+    const response = await fetch(`http://localhost:3000/rooms/${roomId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch room members');
+    }
+
+    const result = await response.json();
+    renderMembers(result.members || []);
+  } catch (error) {
+    console.error('Error fetching members:', error);
+    addSystemMessage('⚠️ Failed to load members');
+  }
 });
