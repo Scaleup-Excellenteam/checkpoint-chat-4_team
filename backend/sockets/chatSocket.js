@@ -1,5 +1,6 @@
 const Room = require("../models/Room");
 const { hasLeak } = require("../utils/dlpChecker");
+const { checkMessageUrls } = require("../utils/urlChecker");
 
 module.exports = (io) => {
   io.on("connection", (socket) => {
@@ -23,12 +24,28 @@ module.exports = (io) => {
     });
 
     socket.on("chatMessage", async ({ roomId, message }) => {
+
+      // check for malicious URLs
+      const urlScan = await checkMessageUrls(message);
+      // find the highest score across all URLs
+      const maxScore = urlScan.reduce((acc, r) => Math.max(acc, r.score), 0);
+      if (maxScore >= 70) {
+        console.log(":rotating_light: Message blocked (score >= 70)");
+        io.to(roomId).emit(
+          "systemMessage",
+          `:warning: ${socket.user.name} tried to share a dangerous link (risk score ${maxScore}). Message blocked.`
+        );
+        return;
+      }
+
       // check for secret recipes data leak
       const leaking = await hasLeak(message);
       if (leaking) {
         socket.emit("systemMessage", "Message contains restricted content");
         return;
       }
+
+      // Broadcast the message to the room
       console.log(`[${roomId}] ${socket.user.name}: ${message}`);
       io.to(roomId).emit("chatMessage", {
         sender: socket.user.name,
