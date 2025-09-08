@@ -26,7 +26,7 @@ module.exports = (io) => {
       // check for secret recipes data leak
       const leaking = await hasLeak(message);
       if (leaking) {
-        socket.emit("chatMessage", "Message contains restricted content");
+        socket.emit("systemMessage", "Message contains restricted content");
         return;
       }
       console.log(`[${roomId}] ${socket.user.name}: ${message}`);
