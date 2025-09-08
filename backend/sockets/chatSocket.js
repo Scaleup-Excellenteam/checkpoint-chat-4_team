@@ -1,4 +1,5 @@
 const Room = require("../models/Room");
+const { hasLeak } = require("../utils/dlpChecker");
 
 module.exports = (io) => {
   io.on("connection", (socket) => {
@@ -21,7 +22,13 @@ module.exports = (io) => {
       io.to(roomId).emit("systemMessage", `${socket.user.name} joined the room`);
     });
 
-    socket.on("chatMessage", ({ roomId, message }) => {
+    socket.on("chatMessage", async ({ roomId, message }) => {
+      // check for secret recipes data leak
+      const leaking = await hasLeak(message);
+      if (leaking) {
+        socket.emit("chatMessage", "Message contains restricted content");
+        return;
+      }
       console.log(`[${roomId}] ${socket.user.name}: ${message}`);
       io.to(roomId).emit("chatMessage", {
         sender: socket.user.name,
