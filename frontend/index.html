@@ -5,69 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Messenger</title>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f9;
-        }
-        h1 {
-            color: #333;
-        }
-        .form-container {
-            margin-top: 20px;
-        }
-        .form-container input {
-            display: block;
-            margin: 10px auto;
-            padding: 10px;
-            width: 200px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .form-container button {
-            padding: 10px 20px;
-            margin: 10px;
-            border: none;
-            border-radius: 5px;
-            background-color: #007BFF;
-            color: white;
-            cursor: pointer;
-        }
-        .form-container button:hover {
-            background-color: #0056b3;
-        }
-        .register-link {
-            margin-top: 20px;
-        }
-        .register-link a {
-            text-decoration: none;
-            color: #007BFF;
-        }
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    <h1>My Messenger</h1>
-    <div class="form-container">
-    <form id="login-form">
-      <input type="text" placeholder="Enter Username" id="login-id" name="id" autocomplete="username" />
-      <input type="password" placeholder="Enter Password" id="login-password" name="password" autocomplete="current-password" />
-      <button id="login-button" type="submit">Login</button>
-    </form>
-  </div>
-  
-    <div class="register-link">
-        <a href="register.html">Register</a>
+    <div class="main-container">
+        <h1>My Messenger</h1>
+        <p class="subtitle">Connect with your team instantly</p>
+        <div class="form-container">
+            <form id="login-form">
+                <input type="text" placeholder="Enter Username" id="login-id" name="id" autocomplete="username" />
+                <input type="password" placeholder="Enter Password" id="login-password" name="password" autocomplete="current-password" />
+                <button id="login-button" type="submit">Login</button>
+            </form>
+        </div>
+        
+        <div class="register-link">
+            <p>Don't have an account?</p>
+            <a href="register.html">Create one here</a>
+        </div>
     </div>
     <script src="auth.js"></script>
     <script src="index.js"></script>
