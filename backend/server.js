@@ -7,7 +7,6 @@ const roomsRouter = require("./routes/roomsRouter");
 const chatSocket = require("./sockets/chatSocket");
 const connectDB = require("./db");
 const cors = require("cors");
-const Room = require("./models/Room");
 const jwt = require("jsonwebtoken");
 const PORT = 3000;
 
@@ -26,7 +25,9 @@ const io = new Server(server, {
 app.use(express.json());
 
 // CORS configuration
-app.use(cors());
+app.use(cors({
+  origin: "*",
+}));
 
 // Routes
 app.use("/auth", authRoutes);
@@ -47,49 +48,13 @@ io.use((socket, next) => {
 });
 
 // --- Handle socket connections ---
-io.on("connection", (socket) => {
-  console.log(`✅ ${socket.user.name} connected (id: ${socket.id})`);
-
-  // Join room
-  socket.on("joinRoom", async (roomId) => {
-    const room = await Room.findById(roomId);
-    if (!room) {
-      socket.emit("errorMessage", "Room not found");
-      return;
-    }
-
-    // Add user to room in DB if not already in it
-    if (!room.users.map(u => u.toString()).includes(socket.user.id)) {
-      room.users.push(socket.user.id);
-      await room.save();
-    }
-
-    // Add socket to Socket.IO room
-    socket.join(roomId);
-    console.log(`${socket.user.name} joined room ${room.name}`);
-
-    io.to(roomId).emit("systemMessage", `${socket.user.name} joined the room`);
-  });
-
-  // Send message
-  socket.on("chatMessage", ({ roomId, message }) => {
-    console.log(`[${roomId}] ${socket.user.name}: ${message}`);
-    io.to(roomId).emit("chatMessage", {
-      sender: socket.user.name,
-      text: message,
-    });
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`❌ ${socket.user.name} disconnected`);
-  });
-});
+chatSocket(io);
 
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
     await connectDB();
-    server.listen(PORT, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server is running at http://localhost:${PORT}`);
     });
   } catch (err) {
