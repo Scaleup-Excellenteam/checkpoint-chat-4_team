@@ -1,5 +1,6 @@
 const Room = require("../models/Room");
 const { checkMessageUrls } = require("../utils/urlChecker");
+const config = require("../config/config");
 const { hasLeak } = require("../utils/dlpChecker");
 const { prefilterMessage } = require("../utils/dlpAutomation");
 
@@ -30,12 +31,23 @@ module.exports = (io) => {
       const urlScan = await checkMessageUrls(message);
       // find the highest score across all URLs
       const maxScore = urlScan.reduce((acc, r) => Math.max(acc, r.score), 0);
-      if (maxScore >= 70) {
-        console.log(":rotating_light: Message blocked (score >= 70)");
-        io.to(roomId).emit(
-          "systemMessage",
-          `:warning: ${socket.user.name} tried to share a dangerous link (risk score ${maxScore}). Message blocked.`
-        );
+      if (maxScore >= config.security.urlRiskThreshold) {
+        // Find the URL result with the highest score for better reporting
+        const blockedUrl = urlScan.find(r => r.score === maxScore);
+        const fromDatabase = blockedUrl?.fromDatabase;
+        
+        console.log(`🚨 Message blocked (score ${maxScore} >= ${config.security.urlRiskThreshold})${fromDatabase ? ' - Found in blocked URL database' : ''}`);
+        
+        // Enhanced message based on source
+        let blockMessage;
+        if (fromDatabase) {
+          const blockCount = blockedUrl.evidence?.database?.blockedCount || 1;
+          blockMessage = `🚫 ${socket.user.name} tried to share a known malicious link (previously blocked ${blockCount} times). Message blocked.`;
+        } else {
+          blockMessage = `⚠️ ${socket.user.name} tried to share a dangerous link (risk score ${maxScore}). Message blocked.`;
+        }
+        
+        io.to(roomId).emit("systemMessage", blockMessage);
         return;
       }
 

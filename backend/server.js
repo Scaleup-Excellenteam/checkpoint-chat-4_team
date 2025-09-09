@@ -1,5 +1,5 @@
 // server.js
-require("dotenv").config();
+const config = require("./config/config");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -10,17 +10,13 @@ const { createRecipeEmbeddings } = require("./utils/create_recipe_embeddings");
 const connectDB = require("./db");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const PORT = 3000;
 
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
+  cors: config.server.cors,
 });
 
 // Middleware
@@ -28,7 +24,7 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors({
-  origin: "*",
+  origin: config.server.cors.origin,
 }));
 
 // Routes
@@ -41,7 +37,7 @@ io.use((socket, next) => {
   if (!token) return next(new Error("No token provided"));
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "supersecret");
+    const decoded = jwt.verify(token, config.auth.jwtSecret);
     socket.user = decoded; // attach user to socket
     next();
   } catch (err) {
@@ -57,9 +53,9 @@ const startServer = async () => {
   try {
     await connectDB();
     await createRecipeEmbeddings();
-    server.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server is running at http://localhost:${PORT}`);
-    });
+    server.listen(config.server.port, config.server.host, () => {
+      console.log(`Server is running at http://${config.server.host}:${config.server.port}`);
+      console.log(`Environment: ${config.environment}`);
   } catch (err) {
     console.error("Failed to start server:", err);
   }

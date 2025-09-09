@@ -1,8 +1,10 @@
 // utils/urlChecker.js  (CommonJS)
-const URLHAUS_API = "https://urlhaus.abuse.ch/api/v1/url/";
-const REQUEST_TIMEOUT_MS = 1500;
+const config = require('../config/config');
+const BlockedUrl = require('../models/BlockedUrl');
 
-const VT_API_KEY = process.env.VT_API_KEY;
+const URLHAUS_API = config.apis.urlhaus.apiUrl;
+const REQUEST_TIMEOUT_MS = config.security.urlCheckTimeout;
+const VT_API_KEY = config.apis.virustotal.apiKey;
 
 function withTimeout(promiseFactory, ms) {
   const controller = new AbortController();
@@ -177,6 +179,72 @@ function verdictFrom(score) {
   return "clean";                             // Very low risk sites
 }
 
+// --- Database Check ---
+async function checkBlockedDatabase(normalizedUrl) {
+  try {
+    const blockedUrl = await BlockedUrl.findBlockedUrl(normalizedUrl);
+    if (blockedUrl) {
+      // Update block count and last detected time
+      await blockedUrl.incrementBlockCount();
+      
+      console.log(`🚫 URL found in blocked database: ${normalizedUrl} (blocked ${blockedUrl.blockedCount} times)`);
+      
+      return {
+        blocked: true,
+        source: 'database',
+        data: {
+          url: blockedUrl.url,
+          normalizedUrl: blockedUrl.normalizedUrl,
+          riskScore: blockedUrl.riskScore,
+          reasons: blockedUrl.reasons,
+          categories: blockedUrl.categories,
+          detectionSource: blockedUrl.detectionSource,
+          blockedCount: blockedUrl.blockedCount,
+          firstDetected: blockedUrl.firstDetected,
+          lastDetected: blockedUrl.lastDetected
+        }
+      };
+    }
+    return { blocked: false };
+  } catch (error) {
+    console.error('Error checking blocked URL database:', error);
+    return { blocked: false }; // Don't block if database check fails
+  }
+}
+
+// --- Save Blocked URL to Database ---
+async function saveBlockedUrl(urlResult) {
+  try {
+    if (urlResult.score >= config.security.urlRiskThreshold) {
+      const urlData = {
+        url: urlResult.input,
+        normalizedUrl: urlResult.url,
+        riskScore: urlResult.score,
+        detectionSource: getDetectionSource(urlResult),
+        reasons: urlResult.reasons,
+        categories: urlResult.categories || [],
+        evidence: urlResult.evidence
+      };
+      
+      await BlockedUrl.addBlockedUrl(urlData);
+      console.log(`💾 Saved blocked URL to database: ${urlData.normalizedUrl} (score: ${urlData.riskScore})`);
+    }
+  } catch (error) {
+    console.error('Error saving blocked URL to database:', error);
+    // Don't throw - this shouldn't prevent the original blocking
+  }
+}
+
+function getDetectionSource(urlResult) {
+  const sources = [];
+  if (urlResult.evidence?.urlhaus?.listed) sources.push('urlhaus');
+  if (urlResult.evidence?.virustotal?.listed) sources.push('virustotal');
+  if (urlResult.reasons?.some(r => r.includes('heuristic') || !r.includes('URLHaus') && !r.includes('VirusTotal'))) {
+    sources.push('heuristic');
+  }
+  return sources.length > 1 ? 'combined' : sources[0] || 'heuristic';
+}
+
 // --- Public API ---
 async function checkUrl(rawUrl) {
   const norm = normalizeUrl(rawUrl);
@@ -184,6 +252,24 @@ async function checkUrl(rawUrl) {
     return { input: rawUrl, url: rawUrl, verdict: "malicious", score: 90, reasons: ["invalid URL"], evidence: {} };
   }
 
+  // 🚫 FIRST: Check if URL is already in blocked database (if enabled)
+  if (config.security.blockedUrls.enabled) {
+    const dbCheck = await checkBlockedDatabase(norm);
+    if (dbCheck.blocked) {
+      return {
+        input: rawUrl,
+        url: norm,
+        verdict: verdictFrom(dbCheck.data.riskScore),
+        score: dbCheck.data.riskScore,
+        reasons: [...dbCheck.data.reasons, `Previously blocked (${dbCheck.data.blockedCount} times)`],
+        categories: dbCheck.data.categories,
+        evidence: { database: dbCheck.data, source: 'database' },
+        fromDatabase: true // Flag to indicate this came from cache
+      };
+    }
+  }
+
+  // If not in database, proceed with normal checks
   const h = heuristicCheck(norm);
   const [uh, vt] = await Promise.all([urlhausCheck(norm), vtLookup(norm)]);
 
@@ -219,7 +305,7 @@ async function checkUrl(rawUrl) {
 
   const verdict = verdictFrom(score);
 
-  return {
+  const result = {
     input: rawUrl,
     url: norm,
     verdict,
@@ -228,6 +314,15 @@ async function checkUrl(rawUrl) {
     categories,                 // ← expose categories
     evidence: { urlhaus: uh, virustotal: vt }
   };
+
+  // 💾 Save to database if malicious (async, don't wait) - only if caching enabled
+  if (config.security.blockedUrls.enabled && score >= config.security.urlRiskThreshold) {
+    saveBlockedUrl(result).catch(err => {
+      console.error('Failed to save blocked URL:', err);
+    });
+  }
+
+  return result;
 }
 
 function extractUrls(text) {
@@ -268,7 +363,7 @@ function extractUrls(text) {
 }
 
 async function checkMessageUrls(text) {
-  const urls = extractUrls(text).slice(0, 5);
+  const urls = extractUrls(text).slice(0, config.security.maxUrlsPerMessage);
   const results = await Promise.all(urls.map((u) => checkUrl(u)));
   return results;
 }
@@ -280,5 +375,7 @@ module.exports = {
   vtLookup,
   checkUrl,
   extractUrls,
-  checkMessageUrls
+  checkMessageUrls,
+  checkBlockedDatabase,
+  saveBlockedUrl
 };
