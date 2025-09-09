@@ -178,8 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('url-threshold').value = config.urlRiskThreshold;
       document.getElementById('dlp-enabled').checked = config.dlpEnabled;
       document.getElementById('dlp-threshold').value = config.dlpThreshold;
-      document.getElementById('dlp-retries').value = config.dlpMaxRetries;
-      document.getElementById('dlp-delay').value = config.dlpBaseDelay;
       
       // Load blocked URL stats
       await loadBlockedUrlStats();
@@ -258,8 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dlpBtn = document.getElementById('update-dlp-btn');
     const dlpEnabledInput = document.getElementById('dlp-enabled');
     const dlpThresholdInput = document.getElementById('dlp-threshold');
-    const dlpRetriesInput = document.getElementById('dlp-retries');
-    const dlpDelayInput = document.getElementById('dlp-delay');
     const dlpAdvanced = document.querySelector('.dlp-advanced');
     
     // Show/hide advanced DLP settings
@@ -277,19 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (dlpEnabledInput.checked) {
         const threshold = parseFloat(dlpThresholdInput.value);
-        const retries = parseInt(dlpRetriesInput.value);
-        const delay = parseInt(dlpDelayInput.value);
         
         if (!isNaN(threshold) && threshold >= 0.0 && threshold <= 1.0) {
           config.threshold = threshold;
-        }
-        
-        if (!isNaN(retries) && retries > 0 && retries <= 10) {
-          config.maxRetries = retries;
-        }
-        
-        if (!isNaN(delay) && delay >= 500 && delay <= 10000) {
-          config.baseDelay = delay;
         }
       }
       
