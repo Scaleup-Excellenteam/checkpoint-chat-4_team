@@ -26,6 +26,65 @@
       <div class="divider"></div>
     </div>
 
+    <!-- Admin Configuration (admins only) -->
+    <div id="admin-config-section" style="display:none;">
+      <h2 style="font-size:18px; margin:0 0 8px;">🛡️ Security Configuration</h2>
+      
+      <!-- URL Risk Threshold -->
+      <div class="config-group">
+        <label for="url-threshold">URL Risk Threshold (0-100):</label>
+        <div class="config-row">
+          <input type="number" id="url-threshold" min="0" max="100" placeholder="70" />
+          <span class="current-value">Current: <span id="current-url-threshold">70</span></span>
+          <button class="secondary" id="update-url-threshold-btn">Update</button>
+        </div>
+        <p class="hint">URLs with risk scores above this threshold will be blocked.</p>
+      </div>
+
+      <!-- DLP Configuration -->
+      <div class="config-group">
+        <label>Data Leak Prevention (DLP):</label>
+        <div class="config-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="dlp-enabled" />
+            <span>Enable DLP Protection</span>
+          </label>
+          <button class="secondary" id="update-dlp-btn">Update DLP</button>
+        </div>
+        <div class="dlp-advanced" style="display:none;">
+          <div class="config-row">
+            <label for="dlp-threshold">Similarity Threshold (0.0-1.0):</label>
+            <input type="number" id="dlp-threshold" min="0.0" max="1.0" step="0.1" placeholder="0.4" />
+            <span class="hint-inline">Higher = more sensitive (detects more)</span>
+          </div>
+          <div class="config-row">
+            <label for="dlp-retries">Max Retries:</label>
+            <input type="number" id="dlp-retries" min="1" max="10" placeholder="5" />
+          </div>
+          <div class="config-row">
+            <label for="dlp-delay">Base Delay (ms):</label>
+            <input type="number" id="dlp-delay" min="500" max="10000" placeholder="1000" />
+          </div>
+        </div>
+        <p class="hint">Controls protection against sharing of confidential recipe information.</p>
+      </div>
+
+      <!-- Blocked URLs Management -->
+      <div class="config-group">
+        <label>Blocked URLs:</label>
+        <div class="config-row">
+          <span class="stats-display">
+            Total: <span id="blocked-urls-count">0</span> | 
+            Blocks: <span id="total-blocks">0</span>
+          </span>
+          <button class="secondary" id="view-blocked-urls-btn">View Details</button>
+        </div>
+        <p class="hint">View and manage URLs that have been automatically blocked.</p>
+      </div>
+
+      <div class="divider"></div>
+    </div>
+
     <!-- Select & Join/Delete -->
     <h2 style="font-size:18px; margin:0 0 8px;">Available rooms</h2>
     <div class="row">

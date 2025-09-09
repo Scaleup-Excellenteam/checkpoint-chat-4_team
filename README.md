@@ -69,6 +69,7 @@ Visit `http://localhost:3000` to access the application.
 |---------|-------------|---------|
 | `URL_RISK_THRESHOLD` | Block messages with URLs scoring above this (0-100) | 70 |
 | `DLP_ENABLED` | Enable data leak prevention | true |
+| `DLP_THRESHOLD` | DLP similarity threshold (0.0-1.0) | 0.4 |
 | `RATE_LIMIT_MESSAGES` | Messages per minute per user | 30 |
 | `MAX_MESSAGE_LENGTH` | Maximum message length | 1000 |
 | `BLOCKED_URL_CACHE_ENABLED` | Enable URL caching system | true |
@@ -263,6 +264,10 @@ The application includes a sophisticated data leak prevention system that protec
 ```env
 # Enable/disable recipe protection
 DLP_ENABLED=true
+
+# DLP similarity threshold (0.0-1.0)
+# Lower = less sensitive, Higher = more sensitive
+DLP_THRESHOLD=0.4
 
 # Configure AI sensitivity
 DLP_MAX_RETRIES=5
