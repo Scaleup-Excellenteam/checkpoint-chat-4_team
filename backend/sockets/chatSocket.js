@@ -1,7 +1,8 @@
 const Room = require("../models/Room");
-const { hasLeak } = require("../utils/dlpChecker");
 const { checkMessageUrls } = require("../utils/urlChecker");
 const config = require("../config/config");
+const { hasLeak } = require("../utils/dlpChecker");
+const { prefilterMessage } = require("../utils/dlpAutomation");
 
 module.exports = (io) => {
   io.on("connection", (socket) => {
@@ -51,10 +52,21 @@ module.exports = (io) => {
       }
 
       // check for secret recipes data leak
-      const leaking = await hasLeak(message);
-      if (leaking) {
+
+      // prefilter: avoid unnecessary AI calls
+      const { action, matches } = prefilterMessage(message);
+      if (action === 'block') {
+        console.log(`Blocked by prefilter (${matches.join(', ')}) from ${socket.user.name} in room ${roomId}`);
         socket.emit("systemMessage", "Message contains restricted content");
         return;
+      }
+      if (action === 'check') {
+        const leaking = await hasLeak(message);
+        if (leaking) {
+          console.log(`Blocked leaking message from ${socket.user.name} in room ${roomId}`);
+          socket.emit("systemMessage", "Message contains restricted content");
+          return;
+        }
       }
 
       // Broadcast the message to the room

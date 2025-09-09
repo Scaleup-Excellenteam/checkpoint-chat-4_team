@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 const authRoutes = require("./routes/authRoutes");
 const roomsRouter = require("./routes/roomsRouter");
 const chatSocket = require("./sockets/chatSocket");
+const { createRecipeEmbeddings } = require("./utils/create_recipe_embeddings");
 const connectDB = require("./db");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -51,10 +52,10 @@ chatSocket(io);
 const startServer = async () => {
   try {
     await connectDB();
+    await createRecipeEmbeddings();
     server.listen(config.server.port, config.server.host, () => {
       console.log(`Server is running at http://${config.server.host}:${config.server.port}`);
       console.log(`Environment: ${config.environment}`);
-    });
   } catch (err) {
     console.error("Failed to start server:", err);
   }
