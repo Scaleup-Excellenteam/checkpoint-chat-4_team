@@ -125,6 +125,12 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
     animation: slideInLeft 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    display: block;
 }
 
 .msg:hover {
@@ -143,6 +149,11 @@ body {
     color: #4a5568;
     line-height: 1.5;
     word-wrap: break-word;
+    max-width: 100%;
+    display: block;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .msg .time {
@@ -269,6 +280,21 @@ body {
     transform: translateX(-5px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
     background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.9));
+}
+
+/* Loading animation */
+.loading {
+    align-self: center;
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(102, 126, 234, 0.3);
+    border-radius: 50%;
+    border-top-color: #667eea;
+    animation: spin 1s ease-in-out infinite;
+}
+
+.hidden {
+    display: none;
 }
 
 /* Animations */
@@ -400,17 +426,6 @@ body {
     color: #a0aec0;
     font-style: italic;
     padding: 2rem;
-}
-
-/* Loading animation */
-.loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(102, 126, 234, 0.3);
-    border-radius: 50%;
-    border-top-color: #667eea;
-    animation: spin 1s ease-in-out infinite;
 }
 
 @keyframes spin {

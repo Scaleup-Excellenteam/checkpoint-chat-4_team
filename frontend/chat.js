@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const msgInput  = document.getElementById('msg-input');
   const sendBtn   = document.getElementById('send-btn');
   const backBtn   = document.getElementById('back-btn');
+  const membersHeader = document.getElementById('membersHeader');
+  const loadingEl = document.querySelector('.loading');
   document.getElementById('room-title').textContent = roomName;
 
   backBtn.addEventListener('click', () => window.location.href = 'rooms.html');
@@ -48,10 +50,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   socket.on("systemMessage", (msg) => {
     addSystemMessage("[SYSTEM] " + msg);
+    loadingEl.classList.add('hidden');
   });
 
   socket.on("chatMessage", (data) => {
     addChatMessage(data.sender, data.text, data.room);
+    loadingEl.classList.add('hidden');
   });
 
   socket.on("roomMembers", (list) => {
@@ -85,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   sendBtn.addEventListener('click', () => {
+    loadingEl.classList.remove('hidden');
     const msg = msgInput.value.trim();
     if (!msg) return;
     socket.emit("chatMessage", { roomId, message: msg });
@@ -113,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const result = await response.json();
     renderMembers(result.members || []);
+    membersHeader.textContent = `Members (${result.members.length})`;
   } catch (error) {
     console.error('Error fetching members:', error);
     addSystemMessage('⚠️ Failed to load members');

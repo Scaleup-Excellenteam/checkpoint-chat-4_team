@@ -93,6 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
         newRoomName.value = '';
         await refreshRooms();
         setStatus('Room created.');
+        Swal.fire({
+          title: 'Success!',
+          text: 'Your data has been saved.',
+          icon: 'success'
+        });
       } catch (e) {
         setStatus(`Create failed: ${e.message}`);
       } finally {
