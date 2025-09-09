@@ -1,10 +1,11 @@
 const Recipe = require('../models/Recipe');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require('dotenv').config({ override: true });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const config = require('../config/config');
+
+const genAI = new GoogleGenerativeAI(config.apis.gemini.apiKey);
 
 exports.hasLeak = async (message) => {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: config.apis.gemini.model });
 
     // load all secret recipes from DB
     const secretRecipes = await Recipe.find({}, 'name ingredients').lean();
@@ -20,8 +21,8 @@ Message: "${message}"
 
 If the message contains a full or partial match to any of the confidential recipes on the list, respond "Yes". Otherwise, respond "No".`;
 
-    const MAX_RETRIES = 5;
-    const BASE_DELAY = 1000; // 1 second
+    const MAX_RETRIES = config.security.dlp.maxRetries;
+    const BASE_DELAY = config.security.dlp.baseDelay; // milliseconds
 
     for (let i = 0; i < MAX_RETRIES; i++) {
         try {

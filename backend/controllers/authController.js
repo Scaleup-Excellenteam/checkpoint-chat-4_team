@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const config = require("../config/config");
 
 exports.register = async (req, res) => {
   try {
@@ -13,7 +14,7 @@ exports.register = async (req, res) => {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(config.auth.bcryptSaltRounds);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create new user
@@ -49,8 +50,8 @@ exports.login = async (req, res) => {
 
     // Create JWT token
     const payload = { id: user._id, name: user.name };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    const token = jwt.sign(payload, config.auth.jwtSecret, {
+      expiresIn: config.auth.jwtExpiration,
     });
 
     res.json({
