@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 const authRoutes = require("./routes/authRoutes");
 const roomsRouter = require("./routes/roomsRouter");
 const chatSocket = require("./sockets/chatSocket");
+const { createRecipeEmbeddings } = require("./utils/create_recipe_embeddings");
 const connectDB = require("./db");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -55,6 +56,7 @@ chatSocket(io);
 const startServer = async () => {
   try {
     await connectDB();
+    await createRecipeEmbeddings();
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`Server is running at http://localhost:${PORT}`);
     });

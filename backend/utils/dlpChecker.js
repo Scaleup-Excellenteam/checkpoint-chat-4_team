@@ -1,48 +1,42 @@
-const Recipe = require('../models/Recipe');
+const fs = require('fs');
+const dotenv = require('dotenv');
+dotenv.config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require('dotenv').config({ override: true });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-exports.hasLeak = async (message) => {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+function cosineSimilarity(vecA, vecB) {
+    let dotProduct = 0.0, normA = 0.0, normB = 0.0;
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
 
-    // load all secret recipes from DB
-    const secretRecipes = await Recipe.find({}, 'name ingredients').lean();
+exports.hasLeak = async (message, threshold=0.4) => {
+    try {
+        // Load recipe embeddings from JSON file
+        const recipeEmbeddings = JSON.parse(fs.readFileSync('recipeEmbeddings.json', 'utf8'));
+        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
 
-    const prompt = `You are a security assistant for a company. Your job is to check for leaks of confidential information.
-The following is a list of our company's private, secret recipes. They are NOT to be shared.
+        // Get embedding for the incoming message
+        const result = await model.embedContent(message);
+        const messageEmbedding = result?.embedding?.values || [];
+        if (!Array.isArray(messageEmbedding) || messageEmbedding.length === 0) {
+            throw new Error('Failed to obtain embedding for message');
+        }
 
-Confidential recipes:
-${secretRecipes.map(s => `${s.name}: ${s.ingredients.join(', ')}`).join('\n')}
-
-Analyze the following message for any signs of intent to leak, share, or threaten to expose the confidential data.
-Message: "${message}"
-
-If the message contains a full or partial match to any of the confidential recipes on the list, respond "Yes". Otherwise, respond "No".`;
-
-    const MAX_RETRIES = 5;
-    const BASE_DELAY = 1000; // 1 second
-
-    for (let i = 0; i < MAX_RETRIES; i++) {
-        try {
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-            return text.toLowerCase().includes("yes");
-        } catch (error) {
-            // Check for the specific 503 error
-            if (error.status === 503) {
-                console.warn(`Attempt ${i + 1} failed with 503 Service Unavailable. Retrying...`);
-                // Calculate exponential delay with random jitter
-                const delay = Math.pow(2, i) * BASE_DELAY + Math.random() * 1000;
-                await new Promise(resolve => setTimeout(resolve, delay));
-            } else {
-                // If the error is not a 503, re-throw it immediately
-                throw error;
+        // Compare message embedding to each recipe embedding
+        for (const recipe of recipeEmbeddings) {
+            const similarity = cosineSimilarity(messageEmbedding, recipe.embedding);
+            if (similarity > threshold) {
+                return true; // Potential leak detected
             }
         }
+        return false; // No leak detected
+    } catch (err) {
+        console.error('DLP check failed:', err?.message || err);
+        return false; // Fail-safe: do not block on errors
     }
-
-    // If all retries fail, throw a final error
-    throw new Error("Failed to get a response from Gemini after multiple retries.");
 };
